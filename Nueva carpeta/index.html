@@ -671,6 +671,7 @@ let filters = {store:'', search:''};
 let tabSearch = {mitienda:'', ventas:'', traspasos:'', misventas:''};
 let vendQuery = '';
 let trQuery = '';
+let mitiendaScope = 'mia'; // 'mia' = solo mi tienda · 'general' = todas las tiendas
 
 function doLogin(){
   const dni = document.getElementById('in-dni').value.trim();
@@ -680,6 +681,7 @@ function doLogin(){
   if(!u){ err.textContent = 'DNI o contraseña incorrectos.'; return; }
   err.textContent='';
   session = u;
+  mitiendaScope = 'mia';
   document.getElementById('login-screen').style.display='none';
   document.getElementById('public-screen').style.display='none';
   document.getElementById('app-screen').style.display='flex';
@@ -1055,17 +1057,69 @@ function renderVendedor(){
   return '';
 }
 function vendMiTienda(){
-  let list = PHONES.filter(p=>p.tienda===session.tienda);
+  const general = mitiendaScope==='general';
+  // los celulares VENDIDOS ya no se muestran en el stock: solo quedan en Ventas / Mis ventas
+  let list = PHONES.filter(p=>p.estado!=='VENDIDO');
+  if(!general) list = list.filter(p=>p.tienda===session.tienda);
   const total = list.length;
   const q = tabSearch.mitienda;
   if(q) list = list.filter(p=>matchesQuery(p,q));
+  const title = general ? 'Todos los celulares — todas las tiendas' : `Stock — ${session.tienda}`;
+  const subtitle = general
+    ? `${total} equipos en todas las tiendas · vende los de ${session.tienda} o solicita los de otra tienda`
+    : `${total} equipos en esta tienda · usa "Vender" en cualquier equipo disponible`;
   return `
-  <div class="section-head"><div><h2>Stock — ${session.tienda}</h2><p>${total} equipos en esta tienda · usa "Vender" en cualquier equipo disponible</p></div></div>
+  <div class="section-head">
+    <div><h2>${title}</h2><p>${subtitle}</p></div>
+    <button class="btn ${general?'btn-primary':''}" onclick="mitiendaScope='${general?'mia':'general'}';tabSearch.mitienda='';renderMain();">${general? '← Ver solo mi tienda' : 'Ver celulares en general'}</button>
+  </div>
   <div class="toolbar"><div class="search-wrap"><input id="vend-mitienda-search" placeholder="Buscar marca, modelo, color o IMEI…" value="${q}" oninput="tabSearch.mitienda=this.value;renderMainKeepFocus();"></div></div>
-  ${phoneTable(list, {allowSell:true})}
+  ${phoneTableVendedor(list)}
   ${phoneModalHtml()}
   ${sellModalHtml()}
   `;
+}
+/* Tabla de stock para el Vendedor: incluye la tienda de cada equipo y, según
+   corresponda, el botón "Vender" (si es de su tienda) o "Solicitar a <tienda>"
+   (si pertenece a otra tienda) para pedir su traspaso. */
+function phoneTableVendedor(list){
+  if(list.length===0) return `<div class="table-wrap"><table><tbody><tr class="empty-row"><td>No hay celulares con estos filtros.</td></tr></tbody></table></div>`;
+  return `<div class="table-wrap"><div class="table-scroll"><table>
+    <thead><tr><th>Foto</th><th>Equipo</th><th>IMEI 1</th><th>Tienda</th><th>Precio</th><th>Estado</th><th></th></tr></thead>
+    <tbody>
+      ${list.map(p=>{
+        const mine = p.tienda===session.tienda;
+        const canSell = mine && p.estado==='DISPONIBLE';
+        const canRequest = !mine && p.estado==='DISPONIBLE';
+        let action='';
+        if(canSell) action = `<button class="btn btn-sell btn-sm" onclick="openSell('${p.id}')">Vender</button>`;
+        else if(canRequest) action = `<button class="btn btn-primary btn-sm" onclick="solicitarDesdeGeneral('${p.id}')">Solicitar a ${p.tienda}</button>`;
+        return `
+        <tr class="row-click" onclick="openPhone('${p.id}')">
+          <td>${phoneThumbHtml(p,'phone-thumb')}</td>
+          <td>${p.marca} ${p.modelo}<br><span style="color:var(--text-dim);font-size:12px;">${p.color} · ${p.ram}GB/${p.rom}GB</span></td>
+          <td class="imei">${p.imei1}</td>
+          <td>${p.tienda}${mine? ' <span style="color:var(--teal);font-weight:700;">(tu tienda)</span>' : ''}</td>
+          <td>S/ ${p.precio}</td>
+          <td>${statusChip(p.estado)}</td>
+          <td onclick="event.stopPropagation();">${action}</td>
+        </tr>`;}).join('')}
+    </tbody></table></div></div>`;
+}
+/* Solicita el traspaso de un celular de otra tienda hacia la tienda del
+   vendedor actual, desde la vista "Ver celulares en general". Queda pendiente
+   de confirmación de recepción en la pestaña Traspasos, igual que cualquier
+   otro traspaso. */
+function solicitarDesdeGeneral(phoneId){
+  const p = phoneById(phoneId);
+  if(!p || p.estado!=='DISPONIBLE') return;
+  const now = new Date();
+  const limite = new Date(now.getTime()+2*3600*1000);
+  TRANSFERS.push({id:nextId(), phoneId, origen:p.tienda, destino:session.tienda, vendedorDni:session.dni, fechaSolicitud:now, fechaLimite:limite, estado:'Pendiente'});
+  p.estado='TRASPASO PENDIENTE';
+  p.historial.push({fecha:now, evento:'Traspaso solicitado', detalle:`${p.tienda} → ${session.tienda} · Solicitado por ${session.nombre} (desde vista general)`});
+  renderMain();
+  alert(`Solicitud enviada a ${p.tienda}. Confirma la recepción en la pestaña "Traspasos" cuando el equipo llegue a ${session.tienda} (antes de ${fmt(limite)}).`);
 }
 function vendTraspasos(){
   const solicitados = TRANSFERS.filter(t=>t.vendedorDni===session.dni);
@@ -1326,6 +1380,7 @@ function phoneModalHtml(){
   if(!p) return '';
   const canRepair = p.estado==='DEFECTUOSO' && (session.rol==='Administrador' || session.rol==='Encargado de Stock');
   const canSellHere = session.rol==='Vendedor' && p.tienda===session.tienda && p.estado==='DISPONIBLE';
+  const canRequestHere = session.rol==='Vendedor' && p.tienda!==session.tienda && p.estado==='DISPONIBLE';
   return `
   <div class="overlay" onclick="if(event.target===this) closePhone();">
     <div class="modal">
@@ -1359,8 +1414,9 @@ function phoneModalHtml(){
             <div class="tl-det">${h.detalle}</div>
           </div>`).join('')}
       </div>
-      ${(canRepair || canSellHere)? `<div class="modal-actions">
+      ${(canRepair || canSellHere || canRequestHere)? `<div class="modal-actions">
         ${canSellHere? `<button class="btn btn-sell" onclick="openSell('${p.id}')">Vender este equipo</button>` : ''}
+        ${canRequestHere? `<button class="btn btn-primary" onclick="closePhone();solicitarDesdeGeneral('${p.id}')">Solicitar a ${p.tienda}</button>` : ''}
         ${canRepair? `<button class="btn btn-primary" onclick="repararCelular('${p.id}')">Marcar como reparado / habilitar para venta</button>` : ''}
       </div>` : ''}
         </div>

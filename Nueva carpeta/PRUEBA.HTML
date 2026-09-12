@@ -1,0 +1,1226 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Entel Dupatec — Control de inventario por IMEI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Barlow:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F3F7FF;
+  --panel:#FFFFFF;
+  --panel-2:#EEF3FF;
+  --line:#D7E3FA;
+  --line-soft:#E7EEFC;
+  --text:#0B1B34;
+  --text-dim:#5B6B8C;
+  --blue:#0B5FFF;
+  --blue-2:#3B82F6;
+  --blue-deep:#0038A8;
+  --sky:#00B4FF;
+  --teal:#0FB88A;
+  --red:#EF4B4B;
+  --amber:#F5A623;
+  --violet:#8B6BF0;
+  --mono:'IBM Plex Mono', ui-monospace, monospace;
+  --sans:'Barlow', sans-serif;
+  --disp:'Barlow Condensed', sans-serif;
+  --radius:16px;
+  --radius-sm:10px;
+  --radius-pill:999px;
+  --glow-blue:0 0 0 1px rgba(11,95,255,.25), 0 10px 26px -8px rgba(11,95,255,.45);
+  --glow-teal:0 0 0 1px rgba(15,184,138,.3), 0 8px 20px -6px rgba(15,184,138,.35);
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:
+    radial-gradient(circle at 12% -10%, rgba(11,95,255,.10), transparent 40%),
+    radial-gradient(circle at 100% 0%, rgba(0,180,255,.12), transparent 40%),
+    radial-gradient(circle at 50% 120%, rgba(59,130,246,.08), transparent 45%),
+    var(--bg);
+  background-attachment:fixed;
+  color:var(--text);
+  font-family:var(--sans);
+  font-size:15px;
+  line-height:1.45;
+  min-height:100vh;
+}
+h1,h2,h3,h4{font-family:var(--disp);font-weight:700;margin:0 0 6px 0;letter-spacing:.2px;}
+a{color:var(--blue);}
+button{font-family:var(--sans);cursor:pointer;}
+input,select,textarea{font-family:var(--sans);}
+.mono{font-family:var(--mono);}
+.hidden{display:none !important;}
+
+/* ---------- layout shells ---------- */
+#login-screen, #public-screen{
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:24px;
+}
+.card{
+  background:linear-gradient(180deg, rgba(255,255,255,.97), rgba(238,243,255,.97));
+  backdrop-filter:blur(14px);
+  border:1px solid rgba(11,95,255,.10);
+  border-radius:var(--radius);
+  padding:30px;
+  box-shadow:0 24px 60px -24px rgba(11,95,255,.35);
+}
+.brand{
+  display:flex;
+  align-items:baseline;
+  gap:10px;
+  margin-bottom:4px;
+}
+.brand .mark{
+  font-family:var(--mono);
+  font-size:12px;
+  color:#fff;
+  background:linear-gradient(135deg, var(--blue), var(--sky));
+  padding:4px 9px;
+  border-radius:var(--radius-pill);
+  letter-spacing:1px;
+  box-shadow:var(--glow-blue);
+}
+.brand h1{font-size:28px;margin:0;background:linear-gradient(135deg, var(--blue-deep), var(--blue));-webkit-background-clip:text;background-clip:text;color:transparent;}
+.tagline{color:var(--text-dim);font-size:14px;margin-bottom:26px;}
+
+.login-card{width:380px;max-width:100%;}
+.field{margin-bottom:14px;}
+.field label{display:block;font-size:12.5px;color:var(--text-dim);margin-bottom:5px;font-weight:600;}
+.field input, .field select{
+  width:100%;
+  background:#fff;
+  border:1.5px solid var(--line);
+  color:var(--text);
+  padding:10px 12px;
+  border-radius:var(--radius-sm);
+  font-size:14.5px;
+  transition:border-color .15s, box-shadow .15s;
+}
+.field input:focus, .field select:focus, .field textarea:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(11,95,255,.15);}
+.btn{
+  border:1.5px solid var(--line);
+  background:#fff;
+  color:var(--text);
+  padding:9px 17px;
+  border-radius:var(--radius-pill);
+  font-size:14px;
+  font-weight:600;
+  transition:transform .12s ease, box-shadow .12s ease, border-color .12s ease, background .12s ease;
+}
+.btn:hover{border-color:var(--blue-2);transform:translateY(-1px);box-shadow:0 6px 16px -8px rgba(11,95,255,.4);}
+.btn:active{transform:translateY(0);}
+.btn-primary{background:linear-gradient(135deg, var(--blue), var(--sky));border-color:transparent;color:#fff;font-weight:700;box-shadow:var(--glow-blue);}
+.btn-primary:hover{filter:brightness(1.06);box-shadow:0 0 0 1px rgba(11,95,255,.5), 0 12px 30px -8px rgba(11,95,255,.5);}
+.btn-sell{background:linear-gradient(135deg, var(--teal), #0C9C74);border-color:transparent;color:#fff;font-weight:700;box-shadow:var(--glow-teal);}
+.btn-sell:hover{filter:brightness(1.08);}
+.btn-danger{background:transparent;border-color:var(--red);color:var(--red);}
+.btn-danger:hover{background:rgba(239,75,75,.1);}
+.btn-ghost{background:transparent;border-color:transparent;color:var(--text-dim);}
+.btn-ghost:hover{color:var(--blue);transform:none;box-shadow:none;}
+.btn-block{width:100%;}
+.btn-sm{padding:6px 12px;font-size:12.5px;}
+.error-msg{color:var(--red);font-size:13px;margin-top:10px;min-height:16px;}
+.demo-users{margin-top:18px;padding-top:16px;border-top:1px dashed var(--line);font-size:12px;color:var(--text-dim);}
+.demo-users div{margin-bottom:3px;}
+.demo-users b{color:var(--text);}
+
+/* ---------- app shell ---------- */
+#app-screen{display:none;min-height:100vh;flex-direction:column;}
+.topbar{
+  display:flex;align-items:center;justify-content:space-between;
+  background:#fff;
+  border-bottom:1px solid var(--line);
+  padding:12px 22px;
+  position:sticky;top:0;z-index:10;
+  box-shadow:0 2px 14px -8px rgba(11,95,255,.25);
+}
+.topbar .brand{margin:0;}
+.topbar .brand h1{font-size:20px;}
+.who{display:flex;align-items:center;gap:14px;font-size:13px;color:var(--text-dim);}
+.who b{color:var(--text);font-weight:700;}
+.rolechip{
+  font-family:var(--mono);font-size:11px;
+  border:1px solid rgba(11,95,255,.35);border-radius:var(--radius-pill);
+  padding:3px 10px;color:var(--blue);background:rgba(11,95,255,.08);
+}
+.tabs{
+  display:flex;gap:6px;padding:10px 22px;background:#fff;
+  border-bottom:1px solid var(--line);flex-wrap:wrap;
+  position:sticky;top:53px;z-index:9;
+}
+.tab{
+  padding:8px 16px;font-size:13.5px;color:var(--text-dim);
+  border-radius:var(--radius-pill);font-weight:600;cursor:pointer;
+  transition:background .15s, color .15s, transform .12s;
+}
+.tab.active{color:#fff;background:linear-gradient(135deg, var(--blue), var(--sky));font-weight:700;box-shadow:var(--glow-blue);}
+.tab:hover:not(.active){color:var(--blue);background:var(--panel-2);transform:translateY(-1px);}
+main{flex:1;padding:22px;max-width:1180px;width:100%;margin:0 auto;}
+.section-head{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:14px;gap:12px;flex-wrap:wrap;}
+.section-head p{color:var(--text-dim);font-size:13.5px;margin:2px 0 0 0;}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px;}
+.toolbar select, .toolbar input{
+  background:#fff;border:1.5px solid var(--line);color:var(--text);
+  padding:8px 10px;border-radius:var(--radius);font-size:13px;
+}
+.search-wrap{position:relative;flex:1;min-width:220px;}
+.search-wrap input{width:100%;padding-left:34px;}
+.search-wrap:before{content:"🔍";position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:13px;opacity:.6;pointer-events:none;}
+
+/* ---------- table ---------- */
+table{width:100%;border-collapse:collapse;font-size:13.5px;}
+th{
+  text-align:left;color:var(--text-dim);font-weight:700;font-size:11.5px;
+  padding:8px 10px;border-bottom:1px solid var(--line);letter-spacing:.2px;
+  text-transform:uppercase;
+}
+td{padding:9px 10px;border-bottom:1px solid var(--line-soft);vertical-align:middle;}
+tr.row-click{cursor:pointer;transition:background .1s;}
+tr.row-click:hover td{background:var(--panel-2);}
+.imei{font-family:var(--mono);font-size:12.5px;color:var(--text-dim);}
+.table-wrap{border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;background:#fff;box-shadow:0 10px 30px -18px rgba(11,95,255,.25);}
+.table-wrap table{margin:0;}
+.table-scroll{max-height:560px;overflow-y:auto;}
+.empty-row td{color:var(--text-dim);text-align:center;padding:26px 10px;}
+
+/* ---------- status chips ---------- */
+.status{
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:12px;font-weight:700;padding:4px 10px 4px 8px;
+  border-radius:var(--radius-pill);border:1px solid currentColor;white-space:nowrap;
+  background:color-mix(in srgb, currentColor 12%, white);
+}
+.status:before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;box-shadow:0 0 6px currentColor;}
+.st-DISPONIBLE{color:var(--teal);}
+.st-VENDIDO{color:var(--blue);}
+.st-TRASPASO{color:var(--amber);}
+.st-DEFECTUOSO{color:var(--red);}
+.st-DEVUELTO{color:var(--violet);}
+.st-VENCIDO{color:var(--red);}
+.st-ACEPTADO{color:var(--teal);}
+.st-RECHAZADO{color:var(--red);}
+.st-PENDIENTE{color:var(--amber);}
+
+/* ---------- cards/kpis ---------- */
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:18px;}
+.kpi{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:15px 16px;transition:transform .15s, box-shadow .15s;box-shadow:0 8px 20px -16px rgba(11,95,255,.3);}
+.kpi:hover{transform:translateY(-3px);box-shadow:0 14px 28px -16px rgba(11,95,255,.4);}
+.kpi .num{font-family:var(--disp);font-size:28px;line-height:1;font-weight:700;}
+.kpi .lbl{color:var(--text-dim);font-size:12px;margin-top:4px;font-weight:600;}
+
+.grid-2{display:grid;grid-template-columns:1.3fr 1fr;gap:16px;align-items:start;}
+@media(max-width:860px){.grid-2{grid-template-columns:1fr;}}
+
+.panel-box{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:18px;box-shadow:0 10px 26px -20px rgba(11,95,255,.3);}
+.panel-box h3{font-size:15px;margin-bottom:10px;}
+
+/* ---------- modal ---------- */
+.overlay{
+  position:fixed;inset:0;background:rgba(11,27,52,.45);
+  display:flex;align-items:flex-start;justify-content:center;
+  padding:40px 16px;overflow-y:auto;z-index:50;
+  backdrop-filter:blur(2px);
+}
+.modal{
+  background:#fff;
+  border:1px solid var(--line);border-radius:var(--radius);
+  width:640px;max-width:100%;padding:26px;
+  box-shadow:0 30px 80px -20px rgba(11,27,52,.45);
+  animation:modalIn .18s ease;
+}
+@keyframes modalIn{from{opacity:0;transform:translateY(8px) scale(.98);}to{opacity:1;transform:none;}}
+.modal-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;}
+.close-x{background:none;border:none;color:var(--text-dim);font-size:20px;line-height:1;padding:2px 6px;}
+.close-x:hover{color:var(--red);}
+.spec-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 20px;margin:14px 0;font-size:13.5px;}
+.spec-grid div span{display:block;color:var(--text-dim);font-size:11.5px;font-weight:600;}
+.timeline{border-left:2px solid var(--line);margin-left:5px;padding-left:16px;margin-top:16px;}
+.tl-item{position:relative;padding-bottom:14px;}
+.tl-item:before{content:"";position:absolute;left:-20.5px;top:4px;width:8px;height:8px;border-radius:50%;background:var(--blue);}
+.tl-item .tl-date{font-family:var(--mono);font-size:11px;color:var(--text-dim);}
+.tl-item .tl-ev{font-size:13.5px;font-weight:700;margin:2px 0;}
+.tl-item .tl-det{font-size:12.5px;color:var(--text-dim);}
+.modal-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;border-top:1px solid var(--line-soft);padding-top:14px;}
+
+.note{font-size:12.5px;color:var(--text-dim);background:var(--panel-2);border:1px solid var(--line);border-radius:var(--radius);padding:10px 12px;margin-bottom:16px;}
+.note b{color:var(--text);}
+footer.disclaimer{padding:16px 22px;color:var(--text-dim);font-size:11.5px;border-top:1px solid var(--line);text-align:center;}
+
+/* ---------- quick-search / typeahead cards ---------- */
+.quick-results{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px;margin-top:12px;max-height:420px;overflow-y:auto;padding-right:2px;}
+.quick-card{
+  background:#fff;border:1.5px solid var(--line);border-radius:var(--radius-sm);
+  padding:12px 13px;cursor:pointer;transition:transform .12s, box-shadow .12s, border-color .12s;
+}
+.quick-card:hover{transform:translateY(-3px);border-color:var(--blue-2);box-shadow:0 10px 22px -12px rgba(11,95,255,.45);}
+.quick-card .qc-title{font-weight:700;font-size:13.5px;}
+.quick-card .qc-sub{color:var(--text-dim);font-size:12px;margin:3px 0 8px 0;}
+.quick-card .qc-price{font-family:var(--disp);font-size:18px;color:var(--blue-deep);font-weight:700;}
+.badge-count{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-width:22px;height:22px;padding:0 6px;border-radius:var(--radius-pill);
+  background:linear-gradient(135deg, var(--blue), var(--sky));color:#fff;
+  font-size:11.5px;font-weight:700;margin-left:6px;
+}
+</style>
+</head>
+<body>
+
+<!-- ===================== LOGIN ===================== -->
+<div id="login-screen">
+  <div class="card login-card">
+    <div class="brand"><span class="mark">IMEI</span><h1>Entel Dupatec</h1></div>
+    <div class="tagline">Inventario, traspasos y ventas — trazabilidad por IMEI</div>
+    <div class="field">
+      <label for="in-dni">DNI</label>
+      <input id="in-dni" maxlength="8" placeholder="Ej. 30000001" autocomplete="off">
+    </div>
+    <div class="field">
+      <label for="in-pass">Contraseña</label>
+      <input id="in-pass" type="password" placeholder="••••••••" autocomplete="off">
+    </div>
+    <button class="btn btn-primary btn-block" onclick="doLogin()">Ingresar</button>
+    <div class="error-msg" id="login-error"></div>
+    <button class="btn btn-ghost btn-block" style="margin-top:6px;" onclick="showPublic()">Consultar stock sin iniciar sesión →</button>
+    <div class="demo-users">
+      <div><b>Administrador</b> — DNI 10000000 / admin123</div>
+      <div><b>Encargado de Stock</b> — DNI 20000000 / stock123</div>
+      <div><b>Vendedor (ANCASH)</b> — DNI 30000001 / venta123</div>
+      <div><b>Vendedor (REAL)</b> — DNI 30000002 / venta123</div>
+      <div style="opacity:.7">(otros vendedores: 30000003 PLAZA · 30000004 ANDA LUZ · 30000005 CHILCA)</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== PUBLIC ===================== -->
+<div id="public-screen" class="hidden" style="display:none;">
+  <div class="card" style="width:820px;max-width:100%;">
+    <div class="section-head">
+      <div class="brand"><span class="mark">IMEI</span><h1 style="font-size:22px;">Consulta pública de stock</h1></div>
+      <button class="btn btn-ghost" onclick="showLogin()">← Volver</button>
+    </div>
+    <p style="color:var(--text-dim);font-size:13.5px;margin-top:0;">Modelo, memoria, color y cantidad disponible por tienda. No se muestra propietario, costo ni vendedor.</p>
+    <div class="toolbar">
+      <select id="pub-store" onchange="renderPublic()">
+        <option value="">Todas las tiendas</option>
+      </select>
+      <div class="search-wrap"><input id="pub-search" placeholder="Buscar marca o modelo…" oninput="renderPublic()"></div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Tienda</th><th>Modelo</th><th>RAM</th><th>Almacenamiento</th><th>Color</th><th>Cantidad</th></tr></thead>
+        <tbody id="pub-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== APP ===================== -->
+<div id="app-screen">
+  <div class="topbar">
+    <div class="brand"><span class="mark">IMEI</span><h1>Entel Dupatec</h1></div>
+    <div class="who">
+      <span id="who-name"></span>
+      <span class="rolechip" id="who-role"></span>
+      <button class="btn btn-ghost btn-sm" onclick="logout()">Salir</button>
+    </div>
+  </div>
+  <div class="tabs" id="tabs"></div>
+  <main id="main"></main>
+  <footer class="disclaimer">Prototipo de interfaz — los datos se generan en memoria para esta demo y no se guardan al recargar la página. El backend definitivo (PHP + MySQL) queda pendiente de implementación.</footer>
+</div>
+
+<!-- modal root -->
+<div id="modal-root"></div>
+
+<script>
+/* ============================================================
+   DATOS BASE / GENERACIÓN DE 100 CELULARES DE EJEMPLO
+   ============================================================ */
+const STORES = ['ANCASH','REAL','PLAZA','ANDA LUZ','CHILCA'];
+const SOCIOS = ['Socio A','Socio B'];
+
+const VENDEDORES = [
+  {dni:'30000001', nombre:'Juan Pérez',    tienda:'ANCASH'},
+  {dni:'30000002', nombre:'María Torres',  tienda:'REAL'},
+  {dni:'30000003', nombre:'Carlos Ruiz',   tienda:'PLAZA'},
+  {dni:'30000004', nombre:'Lucía Vargas',  tienda:'ANDA LUZ'},
+  {dni:'30000005', nombre:'Pedro Gómez',   tienda:'CHILCA'},
+];
+
+const USERS = [
+  {dni:'10000000', pass:'admin123', nombre:'Administrador General', rol:'Administrador', tienda:null},
+  {dni:'20000000', pass:'stock123', nombre:'Rosa Medina', rol:'Encargado de Stock', tienda:null},
+  ...VENDEDORES.map(v=>({dni:v.dni, pass:'venta123', nombre:v.nombre, rol:'Vendedor', tienda:v.tienda})),
+];
+
+const MODELOS = [
+  {marca:'Samsung',  modelo:'Galaxy S26 Ultra',    tier:3},
+  {marca:'Samsung',  modelo:'Galaxy S25',           tier:3},
+  {marca:'Samsung',  modelo:'Galaxy Z Flip6',       tier:3},
+  {marca:'Samsung',  modelo:'Galaxy A55',           tier:1},
+  {marca:'Samsung',  modelo:'Galaxy A35',           tier:1},
+  {marca:'Samsung',  modelo:'Galaxy A25',           tier:1},
+  {marca:'Samsung',  modelo:'Galaxy A15',           tier:1},
+  {marca:'Samsung',  modelo:'Galaxy A06',           tier:1},
+  {marca:'Xiaomi',   modelo:'Redmi Note 14 Pro',    tier:1},
+  {marca:'Xiaomi',   modelo:'Redmi Note 14',        tier:1},
+  {marca:'Xiaomi',   modelo:'Redmi 14C',            tier:1},
+  {marca:'Xiaomi',   modelo:'Redmi A5',             tier:1},
+  {marca:'Xiaomi',   modelo:'Poco X7',              tier:1},
+  {marca:'Xiaomi',   modelo:'Poco X7 Pro',          tier:2},
+  {marca:'Xiaomi',   modelo:'Poco M7',              tier:1},
+  {marca:'Xiaomi',   modelo:'Xiaomi 15',            tier:2},
+  {marca:'Xiaomi',   modelo:'Xiaomi 14T',           tier:2},
+  {marca:'Motorola', modelo:'Moto G85',             tier:1},
+  {marca:'Motorola', modelo:'Moto G75',             tier:1},
+  {marca:'Motorola', modelo:'Moto G35',             tier:1},
+  {marca:'Motorola', modelo:'Moto G24',             tier:1},
+  {marca:'Motorola', modelo:'Edge 60',              tier:2},
+  {marca:'Motorola', modelo:'Edge 60 Fusion',       tier:2},
+  {marca:'Motorola', modelo:'Razr 50',              tier:3},
+  {marca:'Apple',    modelo:'iPhone 16',            tier:3},
+  {marca:'Apple',    modelo:'iPhone 16 Pro',        tier:3},
+  {marca:'Apple',    modelo:'iPhone 15',            tier:2},
+  {marca:'Apple',    modelo:'iPhone 14',            tier:2},
+  {marca:'Apple',    modelo:'iPhone 13',            tier:2},
+  {marca:'Huawei',   modelo:'Nova 13',              tier:2},
+  {marca:'Huawei',   modelo:'Nova 12',              tier:2},
+  {marca:'Huawei',   modelo:'Y9a',                  tier:1},
+  {marca:'Infinix',  modelo:'Note 40',              tier:1},
+  {marca:'Infinix',  modelo:'Hot 50',               tier:1},
+  {marca:'Infinix',  modelo:'Smart 9',              tier:1},
+  {marca:'Realme',   modelo:'13 Pro',               tier:1},
+  {marca:'Realme',   modelo:'C67',                  tier:1},
+  {marca:'Realme',   modelo:'Note 60x',             tier:1},
+  {marca:'Honor',    modelo:'X9c',                  tier:1},
+  {marca:'Honor',    modelo:'X7c',                  tier:1},
+  {marca:'Honor',    modelo:'Magic6 Lite',          tier:2},
+  {marca:'ZTE',      modelo:'Blade V50',            tier:1},
+  {marca:'ZTE',      modelo:'Blade A75',            tier:1},
+  {marca:'OPPO',     modelo:'Reno 12',              tier:2},
+  {marca:'OPPO',     modelo:'A79',                  tier:1},
+  {marca:'vivo',     modelo:'Y28',                  tier:1},
+  {marca:'vivo',     modelo:'V30',                  tier:2},
+];
+const COLORES = ['Negro','Blanco','Azul','Verde','Dorado','Gris Titanio','Morado','Rojo'];
+const RAMS = [4,6,8,12,16];
+const ROMS = [64,128,256,512];
+const PRICE_RANGE = {1:[500,1200], 2:[1300,2400], 3:[2500,4500]};
+
+function randInt(a,b){return Math.floor(Math.random()*(b-a+1))+a;}
+function pick(arr){return arr[randInt(0,arr.length-1)];}
+
+const usedImeis = new Set();
+function genImei(){
+  let s;
+  do{ s=''; for(let i=0;i<15;i++) s+=randInt(0,9); } while(usedImeis.has(s));
+  usedImeis.add(s);
+  return s;
+}
+function daysAgo(n){ const d=new Date(); d.setDate(d.getDate()-n); return d; }
+function fmt(d){
+  if(!(d instanceof Date)) d = new Date(d);
+  return d.toLocaleDateString('es-PE')+' '+d.toLocaleTimeString('es-PE',{hour:'2-digit',minute:'2-digit'});
+}
+
+let PHONES = [];
+let TRANSFERS = [];
+let SALES = [];
+let RETURNS = [];
+let DEFECTS = [];
+let idSeq = 1;
+function nextId(){ return idSeq++; }
+
+const TOTAL_PHONES = 100;
+
+function buildDemoData(){
+  PHONES=[]; TRANSFERS=[]; SALES=[]; RETURNS=[]; DEFECTS=[]; usedImeis.clear(); idSeq=1;
+
+  const perStore = Math.ceil(TOTAL_PHONES/STORES.length);
+  for(let i=0;i<TOTAL_PHONES;i++){
+    const m = pick(MODELOS);
+    const [lo,hi] = PRICE_RANGE[m.tier];
+    const storeIdx = Math.min(Math.floor(i/perStore), STORES.length-1);
+    const store = STORES[storeIdx];
+    const socio = (i%2===0)?SOCIOS[0]:SOCIOS[1];
+    const ingreso = daysAgo(randInt(1,60));
+    const phone = {
+      id: 'C'+String(i+1).padStart(3,'0'),
+      marca: m.marca, modelo: m.modelo,
+      color: pick(COLORES), ram: pick(RAMS), rom: pick(ROMS),
+      precio: Math.round(randInt(lo,hi)/10)*10,
+      imei1: genImei(),
+      imei2: (i%3!==0) ? genImei() : null,
+      socio: socio,
+      tienda: store,
+      estado: 'DISPONIBLE',
+      fechaIngreso: ingreso,
+      historial: [{fecha:ingreso, evento:'Registrado', detalle:`Ingresado a ${store} · Encargado de Stock · Socio: ${socio}`}]
+    };
+    PHONES.push(phone);
+  }
+
+  // VENDIDO: cada 6º celular (no el índice 0)
+  PHONES.forEach((p,i)=>{
+    if(i%6===0 && i!==0){
+      const vend = VENDEDORES.find(v=>v.tienda===p.tienda);
+      const fecha = daysAgo(randInt(0,20));
+      p.estado='VENDIDO';
+      const sale = {id:nextId(), phoneId:p.id, tienda:p.tienda, vendedorDni:vend.dni, dniCliente:String(randInt(10000000,79999999)), fecha, precio:p.precio, anulada:false};
+      SALES.push(sale);
+      p.historial.push({fecha, evento:'Vendido', detalle:`Vendedor: ${vend.nombre} (DNI ${vend.dni}) · Cliente DNI ${sale.dniCliente} · S/ ${sale.precio}`});
+    }
+  });
+
+  // TRASPASO PENDIENTE: dos casos, uno vigente y uno vencido
+  function makeTransfer(idx, horasAtras){
+    const p = PHONES[idx];
+    const vend = VENDEDORES.find(v=>v.tienda===p.tienda);
+    const destinos = STORES.filter(s=>s!==p.tienda);
+    const destino = pick(destinos);
+    const fechaSolicitud = new Date(Date.now()-horasAtras*3600*1000);
+    const fechaLimite = new Date(fechaSolicitud.getTime()+2*3600*1000);
+    p.estado='TRASPASO PENDIENTE';
+    TRANSFERS.push({id:nextId(), phoneId:p.id, origen:p.tienda, destino, vendedorDni:vend.dni, fechaSolicitud, fechaLimite, estado:'Pendiente'});
+    p.historial.push({fecha:fechaSolicitud, evento:'Traspaso solicitado', detalle:`${p.tienda} → ${destino} · Solicitado por ${vend.nombre}`});
+  }
+  makeTransfer(5, 0.5);   // vigente
+  makeTransfer(57, 3);    // vencido (>2h)
+
+  // DEFECTUOSO
+  (function(){
+    const p = PHONES[13];
+    const fecha = daysAgo(3);
+    p.estado='DEFECTUOSO';
+    DEFECTS.push({id:nextId(), phoneId:p.id, motivo:'Pantalla dañada', observacion:'Cliente reportó rajadura en display al recibir el equipo', fecha, reparado:false});
+    p.historial.push({fecha, evento:'Marcado como defectuoso', detalle:'Motivo: Pantalla dañada'});
+  })();
+
+  // DEVUELTO (vendido y luego devuelto)
+  (function(){
+    const p = PHONES[81];
+    const vend = VENDEDORES.find(v=>v.tienda===p.tienda);
+    const fechaVenta = daysAgo(10);
+    const fechaDevol = daysAgo(8);
+    const sale = {id:nextId(), phoneId:p.id, tienda:p.tienda, vendedorDni:vend.dni, dniCliente:String(randInt(10000000,79999999)), fecha:fechaVenta, precio:p.precio, anulada:false};
+    SALES.push(sale);
+    p.historial.push({fecha:fechaVenta, evento:'Vendido', detalle:`Vendedor: ${vend.nombre} · Cliente DNI ${sale.dniCliente} · S/ ${sale.precio}`});
+    p.estado='DEVUELTO';
+    RETURNS.push({id:nextId(), phoneId:p.id, tienda:p.tienda, vendedorDni:vend.dni, fecha:fechaDevol, motivo:'Cliente desistió de la compra', observacion:'Equipo sin uso, caja sellada'});
+    p.historial.push({fecha:fechaDevol, evento:'Devuelto', detalle:'Motivo: Cliente desistió de la compra'});
+  })();
+}
+buildDemoData();
+
+/* ============================================================
+   ESTADO DE SESIÓN Y NAVEGACIÓN
+   ============================================================ */
+let session = null;
+let currentTab = null;
+let filters = {store:'', search:''};
+let tabSearch = {mitienda:'', ventas:'', traspasos:'', misventas:''};
+let vendQuery = '';
+let trQuery = '';
+
+function doLogin(){
+  const dni = document.getElementById('in-dni').value.trim();
+  const pass = document.getElementById('in-pass').value;
+  const u = USERS.find(x=>x.dni===dni && x.pass===pass);
+  const err = document.getElementById('login-error');
+  if(!u){ err.textContent = 'DNI o contraseña incorrectos.'; return; }
+  err.textContent='';
+  session = u;
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('public-screen').style.display='none';
+  document.getElementById('app-screen').style.display='flex';
+  document.getElementById('who-name').innerHTML = '<b>'+u.nombre+'</b>'+(u.tienda? ' · '+u.tienda : '');
+  document.getElementById('who-role').textContent = u.rol;
+  currentTab = defaultTabFor(u.rol);
+  renderTabs();
+  renderMain();
+}
+function logout(){
+  session=null;
+  document.getElementById('app-screen').style.display='none';
+  document.getElementById('in-pass').value='';
+  showLogin();
+}
+function showLogin(){
+  document.getElementById('public-screen').style.display='none';
+  document.getElementById('login-screen').style.display='flex';
+}
+function showPublic(){
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('public-screen').style.display='flex';
+  const sel = document.getElementById('pub-store');
+  sel.innerHTML = '<option value="">Todas las tiendas</option>' + STORES.map(s=>`<option value="${s}">${s}</option>`).join('');
+  renderPublic();
+}
+
+function defaultTabFor(rol){
+  if(rol==='Administrador') return 'inventario';
+  if(rol==='Encargado de Stock') return 'registrar';
+  if(rol==='Vendedor') return 'mitienda';
+  return 'inventario';
+}
+const TABS_BY_ROLE = {
+  'Administrador': [['inventario','Inventario'],['traspasos','Traspasos'],['ventas','Ventas'],['socios','Socios'],['reportes','Reportes']],
+  'Encargado de Stock': [['registrar','Registrar celular'],['inventario','Inventario']],
+  'Vendedor': [['mitienda','Mi tienda'],['traspasos','Traspasos'],['vender','Vender'],['misventas','Mis ventas'],['posventa','Devoluciones / Defectuosos']],
+};
+function renderTabs(){
+  const tabs = TABS_BY_ROLE[session.rol];
+  document.getElementById('tabs').innerHTML = tabs.map(([key,label])=>
+    `<div class="tab ${currentTab===key?'active':''}" onclick="switchTab('${key}')">${label}</div>`
+  ).join('');
+}
+function switchTab(key){ currentTab=key; renderTabs(); renderMain(); }
+
+function renderMain(){
+  const el = document.getElementById('main');
+  if(session.rol==='Administrador') el.innerHTML = renderAdmin();
+  else if(session.rol==='Encargado de Stock') el.innerHTML = renderStock();
+  else if(session.rol==='Vendedor') el.innerHTML = renderVendedor();
+}
+
+/* ============================================================
+   HELPERS DE PRESENTACIÓN
+   ============================================================ */
+function statusClass(estado){
+  if(estado==='DISPONIBLE') return 'st-DISPONIBLE';
+  if(estado==='VENDIDO') return 'st-VENDIDO';
+  if(estado==='TRASPASO PENDIENTE') return 'st-TRASPASO';
+  if(estado==='DEFECTUOSO') return 'st-DEFECTUOSO';
+  if(estado==='DEVUELTO') return 'st-DEVUELTO';
+  return '';
+}
+function statusChip(estado){
+  return `<span class="status ${statusClass(estado)}">${estado}</span>`;
+}
+function transferStatusChip(t){
+  const vencido = t.estado==='Pendiente' && new Date() > new Date(t.fechaLimite);
+  const label = vencido ? 'Vencido' : t.estado;
+  const cls = vencido ? 'st-VENCIDO' : ('st-'+t.estado.toUpperCase());
+  return `<span class="status ${cls}">${label}</span>`;
+}
+function phoneById(id){ return PHONES.find(p=>p.id===id); }
+function vendedorByDni(dni){ return VENDEDORES.find(v=>v.dni===dni); }
+function socioSummary(){
+  const out={};
+  SOCIOS.forEach(s=>{ out[s]={total:0, porTienda:{}}; STORES.forEach(t=>out[s].porTienda[t]=0); });
+  PHONES.forEach(p=>{ out[p.socio].total++; out[p.socio].porTienda[p.tienda]++; });
+  return out;
+}
+function matchesQuery(p,q){
+  if(!q) return true;
+  q=q.toLowerCase();
+  return (p.marca+' '+p.modelo).toLowerCase().includes(q) || p.imei1.includes(q) || (p.imei2&&p.imei2.includes(q)) || p.color.toLowerCase().includes(q) || p.id.toLowerCase().includes(q);
+}
+
+/* ============================================================
+   VISTA: ADMINISTRADOR
+   ============================================================ */
+function renderAdmin(){
+  if(currentTab==='inventario') return adminInventario();
+  if(currentTab==='traspasos') return adminTraspasos();
+  if(currentTab==='ventas') return adminVentas();
+  if(currentTab==='socios') return adminSocios();
+  if(currentTab==='reportes') return adminReportes();
+  return '';
+}
+function adminInventario(){
+  const total = PHONES.length;
+  const disp = PHONES.filter(p=>p.estado==='DISPONIBLE').length;
+  const vend = PHONES.filter(p=>p.estado==='VENDIDO').length;
+  const tras = PHONES.filter(p=>p.estado==='TRASPASO PENDIENTE').length;
+  const def = PHONES.filter(p=>p.estado==='DEFECTUOSO').length;
+  let list = PHONES.slice();
+  if(filters.store) list = list.filter(p=>p.tienda===filters.store);
+  if(filters.search) list = list.filter(p=>matchesQuery(p, filters.search));
+  return `
+  <div class="section-head"><div><h2>Inventario — todas las tiendas</h2><p>${total} celulares registrados en el sistema</p></div></div>
+  <div class="kpi-row">
+    <div class="kpi"><div class="num">${total}</div><div class="lbl">Total</div></div>
+    <div class="kpi"><div class="num" style="color:var(--teal)">${disp}</div><div class="lbl">Disponibles</div></div>
+    <div class="kpi"><div class="num" style="color:var(--blue)">${vend}</div><div class="lbl">Vendidos</div></div>
+    <div class="kpi"><div class="num" style="color:var(--amber)">${tras}</div><div class="lbl">En traspaso</div></div>
+    <div class="kpi"><div class="num" style="color:var(--red)">${def}</div><div class="lbl">Defectuosos</div></div>
+  </div>
+  <div class="toolbar">
+    <select onchange="filters.store=this.value;renderMain();">
+      <option value="">Todas las tiendas</option>
+      ${STORES.map(s=>`<option value="${s}" ${filters.store===s?'selected':''}>${s}</option>`).join('')}
+    </select>
+    <div class="search-wrap"><input placeholder="Buscar marca, modelo, color o IMEI…" value="${filters.search}" oninput="filters.search=this.value;renderMain();"></div>
+  </div>
+  ${phoneTable(list)}
+  ${phoneModalHtml()}
+  ${sellModalHtml()}
+  `;
+}
+function phoneTable(list, opts){
+  opts = opts || {};
+  const withActions = !!opts.allowSell;
+  if(list.length===0) return `<div class="table-wrap"><table><tbody><tr class="empty-row"><td>No hay celulares con estos filtros.</td></tr></tbody></table></div>`;
+  return `<div class="table-wrap"><div class="table-scroll"><table>
+    <thead><tr><th>Equipo</th><th>IMEI 1</th><th>Tienda</th><th>Socio</th><th>Precio</th><th>Estado</th>${withActions?'<th></th>':''}</tr></thead>
+    <tbody>
+      ${list.map(p=>{
+        const canSell = withActions && p.tienda===session.tienda && p.estado==='DISPONIBLE';
+        return `
+        <tr class="row-click" onclick="openPhone('${p.id}')">
+          <td>${p.marca} ${p.modelo}<br><span style="color:var(--text-dim);font-size:12px;">${p.color} · ${p.ram}GB/${p.rom}GB</span></td>
+          <td class="imei">${p.imei1}</td>
+          <td>${p.tienda}</td>
+          <td>${p.socio}</td>
+          <td>S/ ${p.precio}</td>
+          <td>${statusChip(p.estado)}</td>
+          ${withActions? `<td onclick="event.stopPropagation();">${canSell? `<button class="btn btn-sell btn-sm" onclick="openSell('${p.id}')">Vender</button>` : ''}</td>` : ''}
+        </tr>`;}).join('')}
+    </tbody></table></div></div>`;
+}
+function adminTraspasos(){
+  let list = TRANSFERS.slice().sort((a,b)=>new Date(b.fechaSolicitud)-new Date(a.fechaSolicitud));
+  const q = tabSearch.traspasos;
+  if(q){
+    const qq=q.toLowerCase();
+    list = list.filter(t=>{ const p=phoneById(t.phoneId); const v=vendedorByDni(t.vendedorDni);
+      return (p.marca+' '+p.modelo).toLowerCase().includes(qq) || p.imei1.includes(qq) || v.nombre.toLowerCase().includes(qq) || t.origen.toLowerCase().includes(qq) || t.destino.toLowerCase().includes(qq); });
+  }
+  return `
+  <div class="section-head"><div><h2>Traspasos</h2><p>Historial completo de solicitudes entre tiendas</p></div></div>
+  <div class="toolbar"><div class="search-wrap"><input placeholder="Buscar equipo, IMEI, tienda o solicitante…" value="${q}" oninput="tabSearch.traspasos=this.value;renderMain();"></div></div>
+  <div class="table-wrap"><div class="table-scroll"><table>
+    <thead><tr><th>Equipo</th><th>Origen → Destino</th><th>Solicitante</th><th>Solicitado</th><th>Límite</th><th>Estado</th></tr></thead>
+    <tbody>
+    ${list.length===0? `<tr class="empty-row"><td colspan="6">No se encontraron traspasos.</td></tr>` :
+      list.map(t=>{
+        const p = phoneById(t.phoneId); const v = vendedorByDni(t.vendedorDni);
+        return `<tr>
+          <td>${p.marca} ${p.modelo}<br><span class="imei">${p.imei1}</span></td>
+          <td>${t.origen} → ${t.destino}</td>
+          <td>${v.nombre}</td>
+          <td class="mono">${fmt(t.fechaSolicitud)}</td>
+          <td class="mono">${fmt(t.fechaLimite)}</td>
+          <td>${transferStatusChip(t)}</td>
+        </tr>`;
+      }).join('')}
+    </tbody></table></div></div>
+  `;
+}
+function adminVentas(){
+  let list = SALES.slice().sort((a,b)=>new Date(b.fecha)-new Date(a.fecha));
+  const q = tabSearch.ventas;
+  if(q){
+    const qq=q.toLowerCase();
+    list = list.filter(s=>{ const p=phoneById(s.phoneId); const v=vendedorByDni(s.vendedorDni);
+      return (p.marca+' '+p.modelo).toLowerCase().includes(qq) || p.imei1.includes(qq) || v.nombre.toLowerCase().includes(qq) || s.dniCliente.includes(qq) || s.tienda.toLowerCase().includes(qq); });
+  }
+  return `
+  <div class="section-head"><div><h2>Ventas</h2><p>Todas las ventas registradas, por tienda y vendedor</p></div></div>
+  <div class="toolbar"><div class="search-wrap"><input placeholder="Buscar equipo, IMEI, vendedor o DNI cliente…" value="${q}" oninput="tabSearch.ventas=this.value;renderMain();"></div></div>
+  <div class="table-wrap"><div class="table-scroll"><table>
+    <thead><tr><th>Equipo</th><th>Tienda</th><th>Vendedor</th><th>DNI cliente</th><th>Fecha</th><th>Precio</th><th>Estado</th><th></th></tr></thead>
+    <tbody>
+    ${list.length===0? `<tr class="empty-row"><td colspan="8">No se encontraron ventas.</td></tr>` :
+      list.map(s=>{
+        const p = phoneById(s.phoneId); const v = vendedorByDni(s.vendedorDni);
+        return `<tr>
+          <td>${p.marca} ${p.modelo}<br><span class="imei">${p.imei1}</span></td>
+          <td>${s.tienda}</td>
+          <td>${v.nombre}</td>
+          <td class="mono">${s.dniCliente}</td>
+          <td class="mono">${fmt(s.fecha)}</td>
+          <td>S/ ${s.precio}</td>
+          <td>${s.anulada? '<span class="status st-DEFECTUOSO">Anulada</span>' : '<span class="status st-DISPONIBLE">Vigente</span>'}</td>
+          <td>${s.anulada? '' : `<button class="btn btn-danger btn-sm" onclick="anularVenta(${s.id})">Anular</button>`}</td>
+        </tr>`;
+      }).join('')}
+    </tbody></table></div></div>
+  `;
+}
+function anularVenta(saleId){
+  const s = SALES.find(x=>x.id===saleId);
+  if(!s || s.anulada) return;
+  const motivo = prompt('Motivo de la anulación:');
+  if(motivo===null) return;
+  s.anulada = true;
+  s.motivoAnulacion = motivo || '(sin motivo indicado)';
+  s.anuladoPor = session.nombre;
+  s.fechaAnulacion = new Date();
+  const p = phoneById(s.phoneId);
+  p.estado = 'DISPONIBLE';
+  p.historial.push({fecha:s.fechaAnulacion, evento:'Venta anulada', detalle:`Motivo: ${s.motivoAnulacion} · Anulado por ${session.nombre}`});
+  renderMain();
+}
+function adminSocios(){
+  const sum = socioSummary();
+  return `
+  <div class="section-head"><div><h2>Socios</h2><p>Distribución de equipos por socio y tienda</p></div></div>
+  <div class="grid-2">
+    ${SOCIOS.map(s=>`
+      <div class="panel-box">
+        <h3>${s} <span style="color:var(--text-dim);font-weight:400;font-size:13px;">— ${sum[s].total} celulares</span></h3>
+        <div class="table-wrap" style="border:none;box-shadow:none;">
+          <table>
+            <thead><tr><th>Tienda</th><th>Cantidad</th></tr></thead>
+            <tbody>${STORES.map(t=>`<tr><td>${t}</td><td>${sum[s].porTienda[t]}</td></tr>`).join('')}</tbody>
+          </table>
+        </div>
+      </div>`).join('')}
+  </div>`;
+}
+function adminReportes(){
+  const porTienda = STORES.map(t=>{
+    const ps = PHONES.filter(p=>p.tienda===t);
+    return {tienda:t, total:ps.length,
+      disponible:ps.filter(p=>p.estado==='DISPONIBLE').length,
+      traspaso:ps.filter(p=>p.estado==='TRASPASO PENDIENTE').length,
+      vendido:ps.filter(p=>p.estado==='VENDIDO').length,
+      defectuoso:ps.filter(p=>p.estado==='DEFECTUOSO').length};
+  });
+  const porVendedor = VENDEDORES.map(v=>{
+    const ventas = SALES.filter(s=>s.vendedorDni===v.dni && !s.anulada).length;
+    const solicitados = TRANSFERS.filter(t=>t.vendedorDni===v.dni).length;
+    const recibidos = TRANSFERS.filter(t=>t.destino===v.tienda && t.estado==='Aceptado').length;
+    return {nombre:v.nombre, tienda:v.tienda, ventas, solicitados, recibidos};
+  });
+  return `
+  <div class="section-head"><div><h2>Reportes</h2><p>Resumen operativo por tienda y por vendedor</p></div></div>
+  <div class="panel-box" style="margin-bottom:16px;">
+    <h3>Por tienda</h3>
+    <div class="table-wrap" style="border:none;box-shadow:none;"><table>
+      <thead><tr><th>Tienda</th><th>Total</th><th>Disponibles</th><th>En traspaso</th><th>Vendidos</th><th>Defectuosos</th></tr></thead>
+      <tbody>${porTienda.map(r=>`<tr><td>${r.tienda}</td><td>${r.total}</td><td>${r.disponible}</td><td>${r.traspaso}</td><td>${r.vendido}</td><td>${r.defectuoso}</td></tr>`).join('')}</tbody>
+    </table></div>
+  </div>
+  <div class="panel-box">
+    <h3>Por vendedor</h3>
+    <div class="table-wrap" style="border:none;box-shadow:none;"><table>
+      <thead><tr><th>Vendedor</th><th>Tienda</th><th>Ventas</th><th>Traspasos solicitados</th><th>Traspasos recibidos</th></tr></thead>
+      <tbody>${porVendedor.map(r=>`<tr><td>${r.nombre}</td><td>${r.tienda}</td><td>${r.ventas}</td><td>${r.solicitados}</td><td>${r.recibidos}</td></tr>`).join('')}</tbody>
+    </table></div>
+  </div>`;
+}
+
+/* ============================================================
+   VISTA: ENCARGADO DE STOCK
+   ============================================================ */
+function renderStock(){
+  if(currentTab==='registrar') return stockRegistrar();
+  if(currentTab==='inventario') return adminInventario();
+  return '';
+}
+function stockRegistrar(){
+  return `
+  <div class="section-head"><div><h2>Registrar celular nuevo</h2><p>Solo el Encargado de Stock puede dar de alta equipos</p></div></div>
+  <div class="grid-2">
+    <div class="panel-box">
+      <div class="field"><label>Marca</label><input id="rg-marca" placeholder="Samsung, Xiaomi…"></div>
+      <div class="field"><label>Modelo</label><input id="rg-modelo" placeholder="Galaxy A55"></div>
+      <div class="field"><label>Color</label><input id="rg-color" placeholder="Negro"></div>
+      <div style="display:flex;gap:10px;">
+        <div class="field" style="flex:1;"><label>RAM (GB)</label><input id="rg-ram" type="number" placeholder="8"></div>
+        <div class="field" style="flex:1;"><label>Almacenamiento (GB)</label><input id="rg-rom" type="number" placeholder="128"></div>
+      </div>
+      <div class="field"><label>IMEI 1 (15 dígitos)</label><input id="rg-imei1" maxlength="15" placeholder="000000000000000"></div>
+      <div class="field"><label>IMEI 2 (opcional)</label><input id="rg-imei2" maxlength="15" placeholder="000000000000000"></div>
+      <div style="display:flex;gap:10px;">
+        <div class="field" style="flex:1;"><label>Precio (S/)</label><input id="rg-precio" type="number" placeholder="899"></div>
+        <div class="field" style="flex:1;"><label>Socio</label><select id="rg-socio">${SOCIOS.map(s=>`<option>${s}</option>`).join('')}</select></div>
+      </div>
+      <div class="field"><label>Tienda de ingreso</label><select id="rg-tienda">${STORES.map(s=>`<option>${s}</option>`).join('')}</select></div>
+      <button class="btn btn-primary" onclick="registrarCelular()">Registrar en inventario</button>
+      <div class="error-msg" id="rg-error"></div>
+    </div>
+    <div class="panel-box">
+      <h3>Validaciones aplicadas</h3>
+      <p style="color:var(--text-dim);font-size:13px;">— IMEI 1 obligatorio, exactamente 15 dígitos numéricos.<br>— IMEI no puede repetirse (se revisa contra IMEI 1 e IMEI 2 de todo el inventario).<br>— El equipo queda con estado <b>DISPONIBLE</b> en la tienda elegida.<br>— Queda una entrada inicial en su historial.</p>
+    </div>
+  </div>`;
+}
+function registrarCelular(){
+  const marca = document.getElementById('rg-marca').value.trim();
+  const modelo = document.getElementById('rg-modelo').value.trim();
+  const color = document.getElementById('rg-color').value.trim();
+  const ram = parseInt(document.getElementById('rg-ram').value);
+  const rom = parseInt(document.getElementById('rg-rom').value);
+  const imei1 = document.getElementById('rg-imei1').value.trim();
+  const imei2 = document.getElementById('rg-imei2').value.trim();
+  const precio = parseFloat(document.getElementById('rg-precio').value);
+  const socio = document.getElementById('rg-socio').value;
+  const tienda = document.getElementById('rg-tienda').value;
+  const err = document.getElementById('rg-error');
+
+  if(!marca || !modelo || !color || !ram || !rom || !precio){ err.textContent='Completa todos los campos obligatorios.'; return; }
+  if(!/^\d{15}$/.test(imei1)){ err.textContent='El IMEI 1 debe tener exactamente 15 dígitos numéricos.'; return; }
+  if(imei2 && !/^\d{15}$/.test(imei2)){ err.textContent='El IMEI 2 debe tener exactamente 15 dígitos numéricos.'; return; }
+  const repetido = PHONES.some(p=>p.imei1===imei1||p.imei2===imei1||p.imei1===imei2||(imei2&&p.imei2===imei2));
+  if(repetido){ err.textContent='Ya existe un celular registrado con ese IMEI.'; return; }
+
+  const now = new Date();
+  const phone = {
+    id:'C'+String(PHONES.length+1).padStart(3,'0'), marca, modelo, color, ram, rom,
+    precio, imei1, imei2: imei2||null, socio, tienda, estado:'DISPONIBLE', fechaIngreso:now,
+    historial:[{fecha:now, evento:'Registrado', detalle:`Ingresado a ${tienda} · Encargado de Stock · Socio: ${socio}`}]
+  };
+  PHONES.push(phone);
+  err.style.color='var(--teal)'; err.textContent='Celular registrado correctamente: '+phone.id;
+  ['rg-marca','rg-modelo','rg-color','rg-ram','rg-rom','rg-imei1','rg-imei2','rg-precio'].forEach(id=>document.getElementById(id).value='');
+}
+
+/* ============================================================
+   VISTA: VENDEDOR
+   ============================================================ */
+function renderVendedor(){
+  if(currentTab==='mitienda') return vendMiTienda();
+  if(currentTab==='traspasos') return vendTraspasos();
+  if(currentTab==='vender') return vendVender();
+  if(currentTab==='misventas') return vendMisVentas();
+  if(currentTab==='posventa') return vendPosventa();
+  return '';
+}
+function vendMiTienda(){
+  let list = PHONES.filter(p=>p.tienda===session.tienda);
+  const total = list.length;
+  const q = tabSearch.mitienda;
+  if(q) list = list.filter(p=>matchesQuery(p,q));
+  return `
+  <div class="section-head"><div><h2>Stock — ${session.tienda}</h2><p>${total} equipos en esta tienda · usa "Vender" en cualquier equipo disponible</p></div></div>
+  <div class="toolbar"><div class="search-wrap"><input placeholder="Buscar marca, modelo, color o IMEI…" value="${q}" oninput="tabSearch.mitienda=this.value;renderMain();"></div></div>
+  ${phoneTable(list, {allowSell:true})}
+  ${phoneModalHtml()}
+  ${sellModalHtml()}
+  `;
+}
+function vendTraspasos(){
+  const solicitados = TRANSFERS.filter(t=>t.vendedorDni===session.dni);
+  const recibidos = TRANSFERS.filter(t=>t.destino===session.tienda && t.estado==='Pendiente');
+  let otras = PHONES.filter(p=>p.tienda===session.tienda && p.estado==='DISPONIBLE');
+  const q = trQuery;
+  const otrasFiltered = q ? otras.filter(p=>matchesQuery(p,q)) : otras;
+  return `
+  <div class="section-head"><div><h2>Traspasos</h2><p>Solicita el envío de un equipo o resuelve traspasos pendientes de recepción</p></div></div>
+  <div class="grid-2">
+    <div class="panel-box">
+      <h3>Solicitar traspaso</h3>
+      <div class="field"><label>Buscar equipo (de ${session.tienda})</label>
+        <div class="search-wrap"><input placeholder="Marca, modelo o IMEI…" value="${q}" oninput="trQuery=this.value;renderMain();"></div>
+      </div>
+      <div class="field"><label>Equipo <span class="badge-count">${otrasFiltered.length}</span></label>
+        <select id="tr-phone">
+          ${otrasFiltered.map(p=>`<option value="${p.id}">${p.marca} ${p.modelo} — ${p.imei1}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field"><label>Tienda destino</label>
+        <select id="tr-dest">${STORES.filter(s=>s!==session.tienda).map(s=>`<option>${s}</option>`).join('')}</select>
+      </div>
+      <button class="btn btn-primary" onclick="solicitarTraspaso()">Enviar solicitud</button>
+      <div class="error-msg" id="tr-error"></div>
+    </div>
+    <div class="panel-box">
+      <h3>Pendientes por recibir en ${session.tienda}</h3>
+      ${recibidos.length===0? '<p style="color:var(--text-dim);font-size:13px;">No hay traspasos esperando confirmación.</p>' :
+        recibidos.map(t=>{
+          const p = phoneById(t.phoneId);
+          const vencido = new Date() > new Date(t.fechaLimite);
+          return `<div style="border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:8px;">
+            <div style="font-weight:700;">${p.marca} ${p.modelo}</div>
+            <div class="imei">${p.imei1}</div>
+            <div style="font-size:12.5px;color:var(--text-dim);margin:4px 0 8px 0;">Desde ${t.origen} · Límite ${fmt(t.fechaLimite)} ${vencido?'<span style=\"color:var(--red)\">(vencido)</span>':''}</div>
+            <button class="btn btn-sm" style="border-color:var(--teal);color:var(--teal);" onclick="resolverTraspaso(${t.id},true)">Aceptar</button>
+            <button class="btn btn-sm btn-danger" onclick="resolverTraspaso(${t.id},false)">Rechazar</button>
+          </div>`;
+        }).join('')}
+    </div>
+  </div>
+  <h3 style="margin-top:22px;">Mis solicitudes</h3>
+  <div class="table-wrap"><div class="table-scroll"><table>
+    <thead><tr><th>Equipo</th><th>Destino</th><th>Solicitado</th><th>Límite</th><th>Estado</th></tr></thead>
+    <tbody>
+    ${solicitados.length===0? `<tr class="empty-row"><td colspan="5">Aún no has solicitado traspasos.</td></tr>` :
+      solicitados.map(t=>{ const p=phoneById(t.phoneId); return `<tr>
+        <td>${p.marca} ${p.modelo}<br><span class="imei">${p.imei1}</span></td>
+        <td>${t.destino}</td><td class="mono">${fmt(t.fechaSolicitud)}</td><td class="mono">${fmt(t.fechaLimite)}</td>
+        <td>${transferStatusChip(t)}</td></tr>`; }).join('')}
+    </tbody></table></div></div>
+  `;
+}
+function solicitarTraspaso(){
+  const phoneId = document.getElementById('tr-phone').value;
+  const destino = document.getElementById('tr-dest').value;
+  const err = document.getElementById('tr-error');
+  if(!phoneId){ err.textContent='No hay equipos disponibles para traspasar.'; return; }
+  const p = phoneById(phoneId);
+  const now = new Date();
+  const limite = new Date(now.getTime()+2*3600*1000);
+  TRANSFERS.push({id:nextId(), phoneId, origen:session.tienda, destino, vendedorDni:session.dni, fechaSolicitud:now, fechaLimite:limite, estado:'Pendiente'});
+  p.estado='TRASPASO PENDIENTE';
+  p.historial.push({fecha:now, evento:'Traspaso solicitado', detalle:`${session.tienda} → ${destino} · Solicitado por ${session.nombre}`});
+  err.style.color='var(--teal)'; err.textContent='Traspaso solicitado. Vence a las '+fmt(limite)+'.';
+  renderMain();
+}
+function resolverTraspaso(transferId, aceptar){
+  const t = TRANSFERS.find(x=>x.id===transferId);
+  const p = phoneById(t.phoneId);
+  const now = new Date();
+  if(aceptar){
+    t.estado='Aceptado'; t.fechaResolucion=now;
+    p.tienda = t.destino; p.estado='DISPONIBLE';
+    p.historial.push({fecha:now, evento:'Traspaso recibido', detalle:`Recibido en ${t.destino} por ${session.nombre}`});
+  } else {
+    const motivo = prompt('Motivo del rechazo:') || '(sin motivo indicado)';
+    t.estado='Rechazado'; t.fechaResolucion=now; t.motivoRechazo=motivo;
+    p.tienda = t.origen; p.estado='DISPONIBLE';
+    p.historial.push({fecha:now, evento:'Traspaso rechazado', detalle:`Rechazado por ${session.nombre} en ${t.destino} · Motivo: ${motivo} · El equipo regresó a ${t.origen}`});
+  }
+  renderMain();
+}
+function vendVender(){
+  const q = vendQuery;
+  const disponibles = PHONES.filter(p=>p.tienda===session.tienda && p.estado==='DISPONIBLE');
+  const results = q ? disponibles.filter(p=>matchesQuery(p,q)) : [];
+  return `
+  <div class="section-head"><div><h2>Vender un equipo</h2><p>Busca por marca, modelo, color o IMEI y elige el equipo para vender</p></div></div>
+  <div class="panel-box" style="max-width:640px;">
+    <div class="field">
+      <label>Buscar equipo disponible en ${session.tienda} <span class="badge-count">${disponibles.length}</span></label>
+      <div class="search-wrap"><input id="vend-search" placeholder="Ej. iPhone 15, Redmi, negro, IMEI…" value="${q}" oninput="vendQuery=this.value;renderMain();" autofocus></div>
+    </div>
+    ${q==='' ? `<p style="color:var(--text-dim);font-size:13px;">Escribe para ver los equipos disponibles de tu tienda y toca uno para venderlo al instante.</p>` :
+      results.length===0 ? `<p style="color:var(--text-dim);font-size:13px;">Ningún equipo disponible coincide con "${q}".</p>` :
+      `<div class="quick-results">${results.map(p=>`
+        <div class="quick-card" onclick="openSell('${p.id}')">
+          <div class="qc-title">${p.marca} ${p.modelo}</div>
+          <div class="qc-sub">${p.color} · ${p.ram}GB/${p.rom}GB<br><span class="imei">${p.imei1}</span></div>
+          <div class="qc-price">S/ ${p.precio}</div>
+        </div>`).join('')}</div>`}
+  </div>
+  ${sellModalHtml()}
+  `;
+}
+function registrarVenta(){
+  const phoneId = document.getElementById('vt-phone').value;
+  const dniCliente = document.getElementById('vt-dni').value.trim();
+  const precio = parseFloat(document.getElementById('vt-precio').value);
+  const err = document.getElementById('vt-error');
+  if(!phoneId){ err.textContent='No hay equipos disponibles en tu tienda.'; return; }
+  if(!/^\d{8}$/.test(dniCliente)){ err.textContent='El DNI del cliente debe tener 8 dígitos.'; return; }
+  if(!precio || precio<=0){ err.textContent='Ingresa un precio de venta válido.'; return; }
+  performSale(phoneId, dniCliente, precio);
+  err.style.color='var(--teal)'; err.textContent='Venta registrada correctamente. Ya aparece en Ventas y en Mis ventas.';
+  document.getElementById('vt-dni').value=''; document.getElementById('vt-precio').value='';
+  setTimeout(renderMain, 700);
+}
+
+/* Registra la venta y la refleja de inmediato en el equipo (estado VENDIDO)
+   y en el registro de Ventas / Mis ventas — usado tanto por la búsqueda rápida
+   de "Vender" como por el botón rápido en la tabla y en la ficha. */
+function performSale(phoneId, dniCliente, precio){
+  const p = phoneById(phoneId);
+  const now = new Date();
+  SALES.push({id:nextId(), phoneId, tienda:p.tienda, vendedorDni:session.dni, dniCliente, fecha:now, precio, anulada:false});
+  p.estado='VENDIDO';
+  p.historial.push({fecha:now, evento:'Vendido', detalle:`Vendedor: ${session.nombre} · Cliente DNI ${dniCliente} · S/ ${precio}`});
+}
+
+/* ---------- modal de venta rápida ---------- */
+let sellPhoneId = null;
+function openSell(id){ openPhoneId=null; sellPhoneId=id; renderMain(); }
+function closeSell(){ sellPhoneId=null; renderMain(); }
+function sellModalHtml(){
+  if(!sellPhoneId) return '';
+  const p = phoneById(sellPhoneId);
+  if(!p) return '';
+  return `
+  <div class="overlay" onclick="if(event.target===this) closeSell();">
+    <div class="modal" style="width:420px;">
+      <div class="modal-head">
+        <div>
+          <h2 style="font-size:20px;">Vender equipo</h2>
+          <div style="color:var(--text-dim);font-size:13px;">${p.marca} ${p.modelo} · <span class="imei">${p.imei1}</span></div>
+        </div>
+        <button class="close-x" onclick="closeSell()">✕</button>
+      </div>
+      <div class="field"><label>DNI del cliente</label><input id="sell-dni" maxlength="8" placeholder="8 dígitos" autofocus></div>
+      <div class="field"><label>Precio de venta (S/)</label><input id="sell-precio" type="number" value="${p.precio}"></div>
+      <div class="error-msg" id="sell-error"></div>
+      <div class="modal-actions">
+        <button class="btn btn-sell" onclick="confirmSell()">Confirmar venta</button>
+        <button class="btn btn-ghost" onclick="closeSell()">Cancelar</button>
+      </div>
+    </div>
+  </div>`;
+}
+function confirmSell(){
+  const dni = document.getElementById('sell-dni').value.trim();
+  const precio = parseFloat(document.getElementById('sell-precio').value);
+  const err = document.getElementById('sell-error');
+  if(!/^\d{8}$/.test(dni)){ err.textContent='El DNI del cliente debe tener 8 dígitos.'; return; }
+  if(!precio || precio<=0){ err.textContent='Ingresa un precio de venta válido.'; return; }
+  performSale(sellPhoneId, dni, precio);
+  sellPhoneId=null;
+  vendQuery='';
+  renderMain();
+}
+function vendMisVentas(){
+  let list = SALES.filter(s=>s.vendedorDni===session.dni).sort((a,b)=>new Date(b.fecha)-new Date(a.fecha));
+  const vigentes = list.filter(s=>!s.anulada);
+  const q = tabSearch.misventas;
+  if(q){
+    const qq=q.toLowerCase();
+    list = list.filter(s=>{ const p=phoneById(s.phoneId);
+      return (p.marca+' '+p.modelo).toLowerCase().includes(qq) || p.imei1.includes(qq) || s.dniCliente.includes(qq); });
+  }
+  return `
+  <div class="section-head"><div><h2>Mis ventas</h2><p>${vigentes.length} ventas vigentes registradas por ti</p></div></div>
+  <div class="toolbar"><div class="search-wrap"><input placeholder="Buscar equipo, IMEI o DNI cliente…" value="${q}" oninput="tabSearch.misventas=this.value;renderMain();"></div></div>
+  <div class="table-wrap"><div class="table-scroll"><table>
+    <thead><tr><th>Equipo</th><th>Color / Memoria</th><th>DNI cliente</th><th>Fecha</th><th>Precio</th><th>Estado</th></tr></thead>
+    <tbody>
+    ${list.length===0? `<tr class="empty-row"><td colspan="6">No se encontraron ventas.</td></tr>` :
+      list.map(s=>{ const p=phoneById(s.phoneId); return `<tr class="row-click" onclick="openPhone('${p.id}')">
+        <td>${p.marca} ${p.modelo}<br><span class="imei">${p.imei1}</span></td>
+        <td>${p.color} · ${p.ram}GB/${p.rom}GB</td>
+        <td class="mono">${s.dniCliente}</td>
+        <td class="mono">${fmt(s.fecha)}</td>
+        <td>S/ ${s.precio}</td>
+        <td>${s.anulada?'<span class="status st-DEFECTUOSO">Anulada</span>':'<span class="status st-DISPONIBLE">Vigente</span>'}</td>
+      </tr>`;}).join('')}
+    </tbody></table></div></div>
+  ${phoneModalHtml()}
+  ${sellModalHtml()}
+  `;
+}
+function vendPosventa(){
+  const disponibles = PHONES.filter(p=>p.tienda===session.tienda && (p.estado==='DISPONIBLE'||p.estado==='VENDIDO'));
+  return `
+  <div class="section-head"><div><h2>Devoluciones y defectuosos</h2><p>Registra una devolución de cliente o marca un equipo como defectuoso</p></div></div>
+  <div class="grid-2">
+    <div class="panel-box">
+      <h3>Registrar devolución</h3>
+      <div class="field"><label>Equipo</label><select id="dv-phone">${disponibles.map(p=>`<option value="${p.id}">${p.marca} ${p.modelo} — ${p.imei1}</option>`).join('')}</select></div>
+      <div class="field"><label>Motivo</label><input id="dv-motivo" placeholder="Ej. Cliente desistió de la compra"></div>
+      <div class="field"><label>Observación</label><textarea id="dv-obs" rows="2" style="width:100%;background:#fff;border:1.5px solid var(--line);color:var(--text);border-radius:10px;padding:8px;"></textarea></div>
+      <button class="btn btn-primary" onclick="registrarDevolucion()">Registrar devolución</button>
+    </div>
+    <div class="panel-box">
+      <h3>Marcar como defectuoso</h3>
+      <div class="field"><label>Equipo</label><select id="df-phone">${disponibles.map(p=>`<option value="${p.id}">${p.marca} ${p.modelo} — ${p.imei1}</option>`).join('')}</select></div>
+      <div class="field"><label>Motivo</label><input id="df-motivo" placeholder="Ej. Pantalla dañada"></div>
+      <div class="field"><label>Observación</label><textarea id="df-obs" rows="2" style="width:100%;background:#fff;border:1.5px solid var(--line);color:var(--text);border-radius:10px;padding:8px;"></textarea></div>
+      <button class="btn" style="border-color:var(--red);color:var(--red);" onclick="marcarDefectuoso()">Marcar defectuoso</button>
+    </div>
+  </div>`;
+}
+function registrarDevolucion(){
+  const phoneId = document.getElementById('dv-phone').value;
+  const motivo = document.getElementById('dv-motivo').value.trim() || '(sin motivo indicado)';
+  const observacion = document.getElementById('dv-obs').value.trim();
+  if(!phoneId) return;
+  const p = phoneById(phoneId); const now = new Date();
+  RETURNS.push({id:nextId(), phoneId, tienda:session.tienda, vendedorDni:session.dni, fecha:now, motivo, observacion});
+  p.estado='DEVUELTO';
+  p.historial.push({fecha:now, evento:'Devuelto', detalle:`Motivo: ${motivo}${observacion? ' · '+observacion:''}`});
+  renderMain();
+}
+function marcarDefectuoso(){
+  const phoneId = document.getElementById('df-phone').value;
+  const motivo = document.getElementById('df-motivo').value.trim() || '(sin motivo indicado)';
+  const observacion = document.getElementById('df-obs').value.trim();
+  if(!phoneId) return;
+  const p = phoneById(phoneId); const now = new Date();
+  DEFECTS.push({id:nextId(), phoneId, motivo, observacion, fecha:now, reparado:false});
+  p.estado='DEFECTUOSO';
+  p.historial.push({fecha:now, evento:'Marcado como defectuoso', detalle:`Motivo: ${motivo}${observacion? ' · '+observacion:''}`});
+  renderMain();
+}
+
+/* ============================================================
+   MODAL FICHA DE CELULAR
+   ============================================================ */
+let openPhoneId = null;
+function phoneModalHtml(){
+  if(!openPhoneId) return '';
+  const p = phoneById(openPhoneId);
+  if(!p) return '';
+  const canRepair = p.estado==='DEFECTUOSO' && (session.rol==='Administrador' || session.rol==='Encargado de Stock');
+  const canSellHere = session.rol==='Vendedor' && p.tienda===session.tienda && p.estado==='DISPONIBLE';
+  return `
+  <div class="overlay" onclick="if(event.target===this) closePhone();">
+    <div class="modal">
+      <div class="modal-head">
+        <div>
+          <h2>${p.marca} ${p.modelo}</h2>
+          <div style="color:var(--text-dim);font-size:13px;">${p.id} · ${statusChip(p.estado)}</div>
+        </div>
+        <button class="close-x" onclick="closePhone()">✕</button>
+      </div>
+      <div class="spec-grid">
+        <div><span>IMEI 1</span><span class="mono">${p.imei1}</span></div>
+        <div><span>IMEI 2</span><span class="mono">${p.imei2||'—'}</span></div>
+        <div><span>Color</span>${p.color}</div>
+        <div><span>RAM / Almacenamiento</span>${p.ram}GB / ${p.rom}GB</div>
+        <div><span>Precio</span>S/ ${p.precio}</div>
+        <div><span>Socio</span>${p.socio}</div>
+        <div><span>Tienda actual</span>${p.tienda}</div>
+        <div><span>Fecha de ingreso</span>${fmt(p.fechaIngreso)}</div>
+      </div>
+      <h3 style="font-size:14px;margin-top:18px;">Historial de movimientos</h3>
+      <div class="timeline">
+        ${p.historial.slice().reverse().map(h=>`
+          <div class="tl-item">
+            <div class="tl-date">${fmt(h.fecha)}</div>
+            <div class="tl-ev">${h.evento}</div>
+            <div class="tl-det">${h.detalle}</div>
+          </div>`).join('')}
+      </div>
+      ${(canRepair || canSellHere)? `<div class="modal-actions">
+        ${canSellHere? `<button class="btn btn-sell" onclick="openSell('${p.id}')">Vender este equipo</button>` : ''}
+        ${canRepair? `<button class="btn btn-primary" onclick="repararCelular('${p.id}')">Marcar como reparado / habilitar para venta</button>` : ''}
+      </div>` : ''}
+    </div>
+  </div>`;
+}
+function openPhone(id){ sellPhoneId=null; openPhoneId=id; renderMain(); }
+function closePhone(){ openPhoneId=null; renderMain(); }
+function repararCelular(id){
+  const p = phoneById(id);
+  const d = DEFECTS.find(x=>x.phoneId===id && !x.reparado);
+  if(d) d.reparado=true;
+  p.estado='DISPONIBLE';
+  p.historial.push({fecha:new Date(), evento:'Reparado', detalle:`Habilitado nuevamente para venta por ${session.nombre}`});
+  renderMain();
+}
+
+/* ============================================================
+   CONSULTA PÚBLICA
+   ============================================================ */
+function renderPublic(){
+  const store = document.getElementById('pub-store').value;
+  const q = document.getElementById('pub-search').value.toLowerCase();
+  let list = PHONES.filter(p=>p.estado==='DISPONIBLE');
+  if(store) list = list.filter(p=>p.tienda===store);
+  if(q) list = list.filter(p=>(p.marca+' '+p.modelo).toLowerCase().includes(q));
+  // agrupar por tienda+modelo+ram+rom+color
+  const groups = {};
+  list.forEach(p=>{
+    const key = [p.tienda,p.marca,p.modelo,p.ram,p.rom,p.color].join('|');
+    if(!groups[key]) groups[key] = {tienda:p.tienda, modelo:`${p.marca} ${p.modelo}`, ram:p.ram, rom:p.rom, color:p.color, cant:0};
+    groups[key].cant++;
+  });
+  const rows = Object.values(groups).sort((a,b)=> a.tienda.localeCompare(b.tienda) || a.modelo.localeCompare(b.modelo));
+  const tbody = document.getElementById('pub-tbody');
+  tbody.innerHTML = rows.length===0 ? `<tr class="empty-row"><td colspan="6">No se encontró stock con estos filtros.</td></tr>` :
+    rows.map(r=>`<tr><td>${r.tienda}</td><td>${r.modelo}</td><td>${r.ram}GB</td><td>${r.rom}GB</td><td>${r.color}</td><td>${r.cant}</td></tr>`).join('');
+}
+</script>
+</body>
+</html>
